@@ -1,12 +1,15 @@
 import fitz  # PyMuPDF
 import streamlit as st
 import openai
+from openai import OpenAI
 from datetime import datetime, timedelta
 
 st.title("Workrise Resume Builder")
 
 # Initialize OpenAI client
-openai.api_key = st.secrets["OPENAI_API_KEY"]["api_key"]
+client = OpenAI(
+    api_key=st.secrets["OPENAI_API_KEY"]["api_key"]
+)
 
 # Initialize session state
 if "messages" not in st.session_state:
@@ -135,13 +138,13 @@ def generate_summaries():
             "content": f"Company Name: {st.session_state.company_name}\nRole Description: {st.session_state.role_description}\n\nResume Text: {candidate['resume_text']}\n\nIdentify key skills and experience relevant to the role description and company name. Include six to seven bullet points (not including desired pay rate and availability) with no more than twenty words each. The first bullet point should include years of experience in relevant areas, the next few bullet points should include more key skills relevant to the company name and role description, ***the last bullet point (before desired pay rate and availability) should include specific technologies or tools the candidate is familiar with (for example Microsoft Office Suite (Word, Excel, Outlook, etc)). None of the bullet points should include desired pay rate or availability.*** \n\n{pay_rate_line}\n- Availability: {candidate['availability']}. Do not modify the availability part, keep it as is"
         })
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4-turbo",
             messages=[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
             stream=False,
         )
 
-        response_text = response["choices"][0]["message"]["content"]
+        response_text = response.choices[0].message.content
 
         st.session_state.messages.append({"role": "assistant", "content": response_text})
         candidate['summary'] = response_text  # Update the candidate's summary
@@ -171,7 +174,7 @@ def process_edit_input():
                     "content": f"\n\n{user_input}\n Please ensure that the output is a summary in bullet point format. Do not change anything except the bullet point or part that I am referring to - don't change it if you're not sure it should be changed. Do not print out anything that's not a bullet point.\nOriginal Summary:\n{candidate['summary']}"
                 })
 
-                response = openai.ChatCompletion.create(
+                response = client.chat.completions.create(
                     model="gpt-4-turbo",
                     messages=[
                         {"role": m["role"], "content": m["content"]}
@@ -180,7 +183,7 @@ def process_edit_input():
                     stream=False,
                 )
                 
-                response_text = response["choices"][0]["message"]["content"]
+                response_text = response.choices[0].message.content
 
                 st.session_state.messages.append({"role": "assistant", "content": response_text})
 
@@ -236,12 +239,12 @@ if st.session_state.summaries_generated:
             "role": "user",
             "content": f"Generate a nice message which includes the following content: {st.session_state.custom_message}"
         })
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4-turbo",
             messages=[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
             stream=False,
         )
-        custom_message_response = response["choices"][0]["message"]["content"]
+        custom_message_response = response.choices[0].message.content
 
         st.write("----------------------------------------------------------------------------------------------------------------------------------------")
         st.write(f"Hello {st.session_state.recipient_name},")

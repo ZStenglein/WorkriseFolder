@@ -1,5 +1,6 @@
 import streamlit as st
 import openai
+from openai import OpenAI
 import fitz  # PyMuPDF
 from sentence_transformers import SentenceTransformer, util
 import re
@@ -10,7 +11,9 @@ from io import BytesIO
 
 nltk.download('punkt')
 
-openai.api_key = st.secrets["OPENAI_API_KEY"]["api_key"]
+client = OpenAI(
+    api_key=st.secrets["OPENAI_API_KEY"]["api_key"]
+)
 
 # Load pre-trained BERT model for semantic similarity
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
@@ -125,13 +128,13 @@ def generate_summaries():
             "content": f"Company Name: {candidate['company_name']}\nRole Description: {candidate['role_description']}\n\nResume Text: {candidate['resume_text']}\n\nIdentify key skills and experience relevant to the role description and company name. Include six to seven bullet points (not including desired pay rate and availability) with no more than twenty words each. The first bullet point should include years of experience in relevant areas, the next few bullet points should include more key skills relevant to the company name and role description, ***the last bullet point (before desired pay rate and availability) should include specific technologies or tools the candidate is familiar with (for example Microsoft Office Suite (Word, Excel, Outlook, etc))***, followed by:\n- Desired Pay Rate: {candidate['desired_pay_rate']}\n- Availability: {candidate['availability']}. Remember to consider the metrics of Relevance: Evaluates if the summary includes only important information and excludes redundancies. Coherence: Assesses the logical flow and organization of the summary. Consistency: Checks if the summary aligns with the facts in the source document. Fluency: Rates the grammar and readability of the summary. while writing the summary Do not output anything about these metrics, just use them while writing the summary."
         })
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4-turbo",
             messages=[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
             stream=False,
         )
 
-        response_text = response["choices"][0]["message"]["content"]
+        response_text = response.choices[0].message.content
 
         st.session_state.messages.append({"role": "assistant", "content": response_text})
         candidate['summary'] = response_text  # Update the candidate's summary
@@ -147,27 +150,27 @@ def display_summaries():
 
 # Define the function to get similarity score from the API
 def get_similarity_score(human_summary, ai_summary):
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4-turbo",
         messages=[
             {"role": "system", "content": "Compare the following summaries. You may use the metrics of Relevance: Evaluates if the summary includes only important information and excludes redundancies. Coherence: Assesses the logical flow and organization of the summary. Consistency: Checks if the summary aligns with the facts in the source document. Fluency: Rates the grammar and readability of the summary. Provide a similarity score from 1 to 10 between the two summaries and three to four concise reasons for this score in bullet point format, each reason no more than twenty words."},
             {"role": "user", "content": f"Human Summary: {human_summary}\nAI Summary: {ai_summary}"}
         ]
     )
-    score_and_reason = response["choices"][0]["message"]["content"]
+    score_and_reason = response.choices[0].message.content
     score = re.search(r'\d+', score_and_reason).group()
     return int(score), score_and_reason
 
 # Define the function to get accuracy score from the API
 def get_accuracy_score(pdf_text, company_name, role_description, ai_summary):
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4-turbo",
         messages=[
             {"role": "system", "content": "Review the following resume content, company name, and role description, and provide an accuracy score for the AI summary from 1-10 with three to four concise reasons in bullet point format, each reason no more than twenty words. Base the score off of how well the summary matches the resume (whether there's irrelevant points or key points were missed) and the skills needed for the specific company and role description. Don't worry about desired pay rate and availability while scoring, these were added by the user and were not in the resume."},
             {"role": "user", "content": f"Resume Content: {pdf_text}\nCompany Name: {company_name}\nRole Description: {role_description}\nAI Summary: {ai_summary}"}
         ]
     )
-    score_and_reason = response["choices"][0]["message"]["content"]
+    score_and_reason = response.choices[0].message.content
     score = re.search(r'\d+', score_and_reason).group()
     return int(score), score_and_reason
 
