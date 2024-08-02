@@ -135,7 +135,12 @@ def generate_summaries():
         pay_rate_line = f"- Desired Pay Rate: {candidate['pay']}" if candidate['pay'] else ""
         st.session_state.messages.append({
             "role": "user",
-            "content": f"Company Name: {st.session_state.company_name}\nRole Description: {st.session_state.role_description}\n\nResume Text: {candidate['resume_text']}\n\nIdentify key skills and experience relevant to the role description and company name. Include six to seven bullet points (not including desired pay rate and availability) with no more than twenty words each. The first bullet point should include years of experience in relevant areas, the next few bullet points should include more key skills relevant to the company name and role description, ***the last bullet point (before desired pay rate and availability) should include specific technologies or tools the candidate is familiar with (for example Microsoft Office Suite (Word, Excel, Outlook, etc)). None of the bullet points should include desired pay rate or availability.*** \n\n{pay_rate_line}\n- Availability: {candidate['availability']}. Do not modify the availability part, keep it as is"
+            "content": f"Company Name: {st.session_state.company_name}\nRole Description: {st.session_state.role_description}\n\nResume Text: {candidate['resume_text']}\n\nIdentify key skills and experience relevant
+              to the role description and company name. Include six to seven bullet points (not including desired pay rate and availability) with no more than twenty words each. 
+              The first bullet point should include years of experience in relevant areas, the next few bullet points should include more key skills relevant to the company name and role description, 
+              ***the last bullet point (before desired pay rate and availability) should include specific technologies or tools the candidate is familiar with 
+              (for example Microsoft Office Suite (Word, Excel, Outlook, etc)). None of the bullet points should include desired pay rate or availability.*** 
+              \n\n{pay_rate_line}\n- Availability: {candidate['availability']}. Do not modify the availability part, keep it as is"
         })
 
         response = client.chat.completions.create(

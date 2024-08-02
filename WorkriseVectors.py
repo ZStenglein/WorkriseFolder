@@ -22,6 +22,7 @@ def create_vector_database(pdf_folder):
     model = SentenceTransformer('all-MiniLM-L6-v2')
     texts = []
     filenames = []
+    filepaths = []
 
     # List all PDF files
     pdf_files = [os.path.join(pdf_folder, filename) for filename in os.listdir(pdf_folder) if filename.endswith(".pdf")]
@@ -29,6 +30,7 @@ def create_vector_database(pdf_folder):
     # Extract text in parallel
     texts = Parallel(n_jobs=-1)(delayed(extract_text_from_pdf)(pdf) for pdf in pdf_files)
     filenames = [os.path.basename(pdf) for pdf in pdf_files]
+    filepaths = pdf_files
 
     # Encode text
     vectors = model.encode(texts, batch_size=32, show_progress_bar=True)
@@ -40,7 +42,8 @@ def create_vector_database(pdf_folder):
     vector_database = {
         'index': index,
         'texts': texts,
-        'filenames': filenames
+        'filenames': filenames,
+        'filepaths': filepaths
     }
 
     return vector_database
